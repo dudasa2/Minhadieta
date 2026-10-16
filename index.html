@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Minha Dieta">
+<meta name="theme-color" content="#2f7a4f">
+<title>Minha Dieta</title>
+<style>
+  :root{
+    --green:#2f7a4f; --green-light:#e6f4ea; --green-dark:#1f5c38;
+    --orange:#e8813a; --orange-light:#fdece0;
+    --bg:#faf8f4; --card:#ffffff; --text:#2b2b2b; --muted:#7a7570; --border:#eee3d6;
+    --radius:16px; --shadow:0 2px 10px rgba(60,40,10,0.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#171512; --card:#211f1b; --text:#f1ece3; --muted:#a89f92; --border:#332f28;
+      --green-light:#1c2e22; --orange-light:#3a2a1c;
+    }
+  }
+  *{box-sizing:border-box;}
+  i[data-lucide]{font-style:normal; display:inline-flex; align-items:center; justify-content:center; line-height:1; font-size:14px;}
+  .tab-btn i[data-lucide]{font-size:18px;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); padding-bottom:84px;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    background:linear-gradient(135deg,var(--green) 0%, var(--green-dark) 100%);
+    color:#fff; padding:18px 18px 14px; border-radius:0 0 22px 22px; box-shadow:var(--shadow);
+  }
+  header .top-row{display:flex; justify-content:space-between; align-items:flex-start;}
+  header h1{margin:0; font-size:20px; font-weight:700;}
+  header .sub{font-size:13px; opacity:.9; margin-top:2px;}
+  header .date{font-size:12px; opacity:.85; text-align:right;}
+  .progress-wrap{margin-top:14px;}
+  .progress-bar{background:rgba(255,255,255,.25); border-radius:20px; height:10px; overflow:hidden;}
+  .progress-fill{background:#fff; height:100%; border-radius:20px; transition:width .3s ease; width:0%;}
+  .progress-label{font-size:12px; margin-top:6px; opacity:.9;}
+  main{padding:14px 14px 8px; max-width:640px; margin:0 auto;}
+  .tabs{
+    position:fixed; bottom:0; left:0; right:0; z-index:20;
+    display:flex; background:var(--card); border-top:1px solid var(--border);
+    box-shadow:0 -2px 10px rgba(0,0,0,0.06);
+  }
+  .tab-btn{
+    flex:1; border:none; background:none; padding:10px 4px 8px; font-size:11px;
+    color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:3px;
+    cursor:pointer; font-family:inherit;
+  }
+  .tab-btn i{width:19px; height:19px;}
+  .tab-btn.active{color:var(--green-dark); font-weight:700;}
+  .view{display:none;} .view.active{display:block;}
+  .card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:14px 16px; margin-bottom:12px; border:1px solid var(--border);
+  }
+  .section-title{
+    font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted);
+    margin:18px 4px 8px; font-weight:700;
+  }
+  .section-title:first-child{margin-top:4px;}
+  .supp-card{display:flex; gap:12px; align-items:flex-start;}
+  .supp-card + .supp-card{margin-top:8px;}
+  .check{
+    width:26px; height:26px; border-radius:50%; border:2px solid var(--green);
+    flex:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background:transparent; transition:.15s; margin-top:2px;
+  }
+  .check i{width:14px; height:14px; display:none;}
+  .check.done{background:var(--green); color:#fff;}
+  .check.done i{display:block;}
+  .supp-title{font-weight:700; font-size:14.5px; display:flex; align-items:center; gap:6px;}
+  .supp-title i{width:16px; height:16px; color:var(--orange);}
+  .supp-desc{font-size:13px; color:var(--muted); margin-top:2px; line-height:1.4;}
+  .meal-card{padding:0; overflow:hidden;}
+  .meal-head{display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer;}
+  .meal-time{
+    background:var(--orange-light); color:var(--orange); font-weight:800; font-size:13px;
+    border-radius:10px; padding:6px 8px; min-width:52px; text-align:center; flex:none;
+  }
+  .meal-emoji{font-size:22px; flex:none;}
+  .meal-info{flex:1; min-width:0;}
+  .meal-name{font-weight:700; font-size:15px;}
+  .meal-weight{font-size:12px; color:var(--muted); margin-top:1px;}
+  .meal-card.done .meal-name{color:var(--green-dark);}
+  .meal-card.done{background:var(--green-light);}
+  .chev{color:var(--muted); flex:none; display:flex; transition:transform .2s;}
+  .chev i{width:16px; height:16px;}
+  .meal-card.open .chev{transform:rotate(180deg);}
+  .meal-body{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+  .meal-card.open .meal-body{max-height:800px;}
+  .meal-body-inner{padding:0 16px 16px 16px;}
+  .meal-block-title{font-size:12px; font-weight:700; color:var(--green-dark); margin:10px 0 4px; text-transform:uppercase; letter-spacing:.03em;}
+  .meal-block-title.alt{color:var(--orange);}
+  ul.plain{margin:0; padding-left:18px; font-size:13.5px; line-height:1.6;}
+  ul.plain li{margin-bottom:2px;}
+  .swap-chip{
+    display:inline-block; background:var(--orange-light); color:#a8541b; font-size:12.5px;
+    padding:5px 10px; border-radius:20px; margin:3px 4px 0 0;
+  }
+  @media (prefers-color-scheme:dark){ .swap-chip{color:#f0b98a;} }
+  .meal-note{font-size:12px; color:var(--muted); margin-top:8px; font-style:italic;}
+  .mark-btn{
+    margin-top:12px; width:100%; padding:10px; border-radius:12px; border:none;
+    background:var(--green); color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .mark-btn i{width:15px; height:15px;}
+  .mark-btn.done{background:transparent; color:var(--green-dark); border:2px solid var(--green);}
+  .prep-item{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border);}
+  .prep-item:last-child{border-bottom:none;}
+  .prep-item.done .prep-text{text-decoration:line-through; color:var(--muted);}
+  .prep-text{flex:1; font-size:14px;}
+  .prep-del{background:none; border:none; color:#c76; cursor:pointer; padding:2px 6px; display:flex;}
+  .prep-del i{width:16px; height:16px;}
+  .add-row{display:flex; gap:8px; margin-top:12px;}
+  .add-row input{
+    flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    font-size:14px; font-family:inherit; background:var(--bg); color:var(--text);
+  }
+  .add-row button{
+    background:var(--green); color:#fff; border:none; border-radius:10px; padding:0 16px;
+    font-weight:700; cursor:pointer; font-size:15px; display:flex; align-items:center;
+  }
+  .week-reset{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .week-reset span{font-size:12px; color:var(--muted);}
+  .small-btn{
+    background:none; border:1px solid var(--border); color:var(--muted); border-radius:10px;
+    padding:6px 10px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;
+  }
+  .small-btn i{width:13px; height:13px;}
+  .pantry-cat{margin-bottom:14px;}
+  .pantry-cat h4{margin:0 0 6px; font-size:13.5px; color:var(--green-dark); display:flex; align-items:center; gap:6px;}
+  .pantry-cat h4 i{width:15px; height:15px;}
+  .pantry-tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .tag{background:var(--green-light); color:var(--green-dark); font-size:12.5px; padding:5px 10px; border-radius:20px;}
+  .rule{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);}
+  .rule:last-child{border-bottom:none;}
+  .rule i.ic{width:18px; height:18px; flex:none; color:var(--orange); margin-top:1px;}
+  .rule .txt{font-size:13.5px; line-height:1.5;}
+  .rule .txt b{color:var(--green-dark);}
+  .weight-row{display:flex; gap:8px; align-items:center;}
+  .weight-row input{
+    flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--border); font-size:14px;
+    font-family:inherit; background:var(--bg); color:var(--text);
+  }
+  .weight-log{margin-top:10px; font-size:13px;}
+  .weight-log-item{display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);}
+  .weight-log-item:last-child{border-bottom:none;}
+  .empty{color:var(--muted); font-size:13px; text-align:center; padding:10px 0;}
+  .routine-box{background:var(--orange-light); border-radius:12px; padding:12px 14px; font-size:13px; line-height:1.55; color:#7a4318;}
+  @media (prefers-color-scheme:dark){ .routine-box{color:#f0c9a0;} }
+  .routine-box div{display:flex; gap:8px; margin-bottom:10px;}
+  .routine-box div:last-child{margin-bottom:0;}
+  .routine-box i{width:16px; height:16px; flex:none; margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <div>
+      <h1>Minha Dieta 🌱</h1>
+      <div class="sub">Ganho de massa · ~2000 kcal/dia</div>
+    </div>
+    <div class="date" id="headerDate"></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 de 10 concluídos hoje</div>
+  </div>
+</header>
+
+<main>
+
+  <section class="view active" id="view-hoje">
+    <div class="section-title">Suplementos de hoje</div>
+    <div class="card">
+      <div class="supp-card" id="supp-manha">
+        <div class="check" data-supp="manha"><i data-lucide="check"></i></div>
+        <div>
+          <div class="supp-title"><i data-lucide="sunrise"></i> Ao acordar / com o café da manhã</div>
+          <div class="supp-desc">Fórmula manipulada — 1 dose: Ferro quelato 40mg + Vitamina E 300mg + Curcuman 500mg + Piperina 20mcg + Vitamina D 2000UI</div>
+        </div>
+      </div>
+      <div class="supp-card" id="supp-almoco">
+        <div class="check" data-supp="almoco"><i data-lucide="check"></i></div>
+        <div>
+          <div class="supp-title"><i data-lucide="pill"></i> Após o almoço</div>
+          <div class="supp-desc">Vitamina B12 500mg — 1 dose sublingual</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Refeições de hoje</div>
+    <div id="mealsList"></div>
+  </section>
+
+  <section class="view" id="view-prep">
+    <div class="section-title">Preparo da semana</div>
+    <div class="card">
+      <div class="week-reset">
+        <span>Marque o que já deixou pronto</span>
+        <button class="small-btn" id="resetWeekBtn"><i data-lucide="refresh-ccw"></i> Nova semana</button>
+      </div>
+      <div id="prepList"></div>
+      <div class="add-row">
+        <input type="text" id="prepInput" placeholder="Adicionar tarefa de preparo...">
+        <button id="prepAddBtn"><i data-lucide="plus"></i></button>
+      </div>
+    </div>
+    <div class="section-title">Sugestões pra essa semana</div>
+    <div class="card">
+      <div class="routine-box">
+        Você comprou frango desfiado, pão integral, requeijão e presunto/queijo — dá pra deixar prontos vários sanduíches (pão + frango desfiado, pão + requeijão, pão + presunto e queijo) para o café da manhã e o lanche da tarde. Porcione a granola em potinhos de 12g e lave/porcione as frutas (banana, morango, uva) pra facilitar a coleção e os lanches.
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-despensa">
+    <div class="section-title">O que tem na geladeira / despensa</div>
+    <div class="card">
+      <div class="pantry-cat">
+        <h4><i data-lucide="apple"></i> Frutas</h4>
+        <div class="pantry-tags"><span class="tag">Banana</span><span class="tag">Morango</span><span class="tag">Uva</span></div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="milk"></i> Laticínios &amp; frios</h4>
+        <div class="pantry-tags">
+          <span class="tag">Leite Natural Milk integral fresco</span>
+          <span class="tag">Iogurte natural integral Itambé (1,15kg)</span>
+          <span class="tag">Queijo minas</span>
+          <span class="tag">Queijo mussarela fatiado (Itambé)</span>
+          <span class="tag">Requeijão Canto de Minas (não light)</span>
+          <span class="tag">Presunto cozido (Seara)</span>
+        </div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="beef"></i> Proteínas</h4>
+        <div class="pantry-tags"><span class="tag">Peito de frango</span><span class="tag">Frango desfiado pronto</span><span class="tag">Carne moída</span><span class="tag">Ovo</span></div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="wheat"></i> Pães, grãos &amp; cereais</h4>
+        <div class="pantry-tags"><span class="tag">Pão integral</span><span class="tag">Aveia em flocos (APTI)</span><span class="tag">Farinha de aveia (Naplural)</span><span class="tag">Granola tradicional (Natural Life)</span></div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="carrot"></i> Vegetais &amp; legumes</h4>
+        <div class="pantry-tags"><span class="tag">Pepino</span><span class="tag">Tomate cereja</span><span class="tag">Alface</span><span class="tag">Batata</span><span class="tag">Mandioquinha</span><span class="tag">Cheiro-verde</span><span class="tag">Mix congelado (milho, ervilha, cenoura, brócolis) 1,1kg</span></div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="package"></i> Outros</h4>
+        <div class="pantry-tags"><span class="tag">Geleia de morango natural</span><span class="tag">Mel</span><span class="tag">Molho chimichurri</span><span class="tag">Macarrão</span><span class="tag">Limão</span><span class="tag">Óleo</span><span class="tag">Manteiga</span></div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="cup-soda"></i> Sucos &amp; bebidas</h4>
+        <div class="pantry-tags"><span class="tag">Suco de laranja natural (1,7L)</span><span class="tag">Suco de uva (1,7L)</span><span class="tag">Coca-Cola Zero lata 200ml</span><span class="tag">Água à vontade</span></div>
+      </div>
+      <div class="pantry-cat">
+        <h4><i data-lucide="soup"></i> Prontos</h4>
+        <div class="pantry-tags"><span class="tag">Marmitas LivUp "dia a dia" (300–350g, almoço)</span></div>
+      </div>
+      <div class="meal-note">⚠️ Falta na despensa: azeite extra virgem (precisa comprar — hoje só tem óleo e manteiga).</div>
+    </div>
+  </section>
+
+  <section class="view" id="view-mais">
+    <div class="section-title">Regras rápidas</div>
+    <div class="card">
+      <div class="rule"><i class="ic" data-lucide="cup-soda"></i><div class="txt"><b>Refrigerante:</b> só Coca-Cola Zero, latinha 200ml, no máximo <b>1 por dia</b>, apenas no almoço ou no jantar.</div></div>
+      <div class="rule"><i class="ic" data-lucide="citrus"></i><div class="txt"><b>Sucos naturais:</b> laranja ou uva (tem na geladeira), podem substituir o suco de 200g do almoço.</div></div>
+      <div class="rule"><i class="ic" data-lucide="salad"></i><div class="txt"><b>Salada do almoço/jantar:</b> verdura crua à vontade — <b>fruta não entra na salada</b> do almoço.</div></div>
+      <div class="rule"><i class="ic" data-lucide="droplet"></i><div class="txt">Água à vontade ao longo do dia.</div></div>
+      <div class="rule"><i class="ic" data-lucide="moon"></i><div class="txt"><b>Ceia:</b> só se sentir fome, até <b>21h30</b>, 40–48g (ex: uva, banana ou outra fruta pequena).</div></div>
+    </div>
+
+    <div class="section-title">Minha rotina</div>
+    <div class="card">
+      <div class="routine-box">
+        <div><i data-lucide="bus"></i><span>Período fora de casa durante o dia — colação, lanche da manhã e almoço acontecem fora, então vale levar tudo pronto.</span></div>
+        <div><i data-lucide="target"></i><span>Objetivo: ganhar massa e chegar no peso ideal para fortalecer o corpo para os treinos de canto.</span></div>
+        <div><i data-lucide="heart-pulse"></i><span>Suplementação por deficiência de vitamina D e B12 — 4 meses.</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Progresso (peso)</div>
+    <div class="card">
+      <div class="weight-row">
+        <input type="number" step="0.1" id="weightInput" placeholder="Peso de hoje (kg)">
+        <button class="small-btn" id="weightAddBtn" style="background:var(--green); color:#fff; border:none;">Salvar</button>
+      </div>
+      <div class="weight-log" id="weightLog"></div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-view="hoje"><i data-lucide="check-circle-2"></i>Hoje</button>
+  <button class="tab-btn" data-view="prep"><i data-lucide="chef-hat"></i>Preparo</button>
+  <button class="tab-btn" data-view="despensa"><i data-lucide="refrigerator"></i>Despensa</button>
+  <button class="tab-btn" data-view="mais"><i data-lucide="menu"></i>Mais</button>
+</nav>
+
+<script>
+// ---------- DADOS DA DIETA ----------
+const MEALS = [
+  { id:'cafe', time:'07:00', emoji:'🍳', name:'Café da manhã', total:'230g',
+    base:['Tapioca — 3 colheres (45g)','Café — 1 xícara média (90g)','Leite integral — 1 copo (50g)','Ovo — 1 unidade (45g)'],
+    swaps:['Iogurte natural + granola + um pouquinho de mel','Pão integral + geleia + ovo','Pão + ovo','Pão + frango desfiado','Pão + carne','Pão + requeijão'],
+    note:'Café ou leite acompanham qualquer opção escolhida.' },
+  { id:'colacao', time:'08:30', emoji:'🍌', name:'Colação', total:'90g',
+    base:['Fruta — banana (40g) ou 1 fatia de mamão (45g)','Aveia em flocos','Mel — 1 colher de chá (5g)'],
+    swaps:['Trocar a fruta por morango ou uva, mantendo a porção'], note:'' },
+  { id:'lanche_manha', time:'09:45', emoji:'🥪', name:'Lanche da manhã', total:'235g',
+    base:['Cookies/biscoitos de aveia e mel — 5 unidades','Suco de morango'],
+    swaps:['Pão integral + pepino + frango desfiado (35g)'],
+    note:'Acontece fora de casa — dá pra levar pronto.' },
+  { id:'almoco', time:'12:00', emoji:'🍽️', name:'Almoço', total:'561g',
+    base:['Arroz branco — 2 colheres rasas (60g)','Feijão — 1 concha (50g) ou leguminosas','Frango grelhado — 1 unidade (75g) ou carne, ovo, ave','Chuchu ou vegetais B — 2 colheres de sopa (40g), ou outra opção de vegetal B (50g)','Salada de verdura crua (sem fruta) — à vontade, 1 porção (20g)','Azeite extra virgem — 1 colher de chá (6g)','Suco (200g) ou fruta'],
+    swaps:['Marmita LivUp "dia a dia" (300–350g) + completar com salada, azeite e suco/fruta'],
+    note:'Hoje em dia: marmita LivUp fora de casa, completando com o que faltar.' },
+  { id:'lanche_tarde1', time:'15:00', emoji:'🍎', name:'Lanche da tarde', total:'284g',
+    base:['Iogurte natural (ou leite/derivados)','Maçã — 100g','Granola — 1 colher de sopa (12g)'],
+    swaps:[], note:'' },
+  { id:'lanche_tarde2', time:'17:30', emoji:'🥜', name:'Lanche da tarde 2', total:'80g',
+    base:['Lanche saudável — 80g (livre, ex: fruta + oleaginosas, sanduíche pequeno, iogurte)'],
+    swaps:[], note:'' },
+  { id:'jantar', time:'20:00', emoji:'🍝', name:'Jantar', total:'531g',
+    base:['Mesma base do almoço (arroz, feijão, proteína, vegetal B)','Verdura — 20g','Verdura — 40g'],
+    swaps:['Pode repetir a opção de marmita/prato do almoço'], note:'' },
+  { id:'ceia', time:'até 21:30', emoji:'🌙', name:'Ceia (se sentir fome)', total:'40–48g',
+    base:['Uva, banana ou outra fruta pequena'], swaps:[],
+    note:'Só fazer se estiver com fome, sempre até 21h30.' }
+];
+
+// ---------- ÍCONES ----------
+const ICONS = {
+  'check':'✓', 'check-circle-2':'✔', 'circle':'○', 'chevron-down':'▾', 'x':'✕', 'plus':'+',
+  'refresh-ccw':'↻', 'sunrise':'🌅', 'pill':'💊', 'apple':'🍎', 'milk':'🥛', 'beef':'🍗',
+  'wheat':'🌾', 'carrot':'🥕', 'package':'📦', 'cup-soda':'🥤', 'soup':'🍲', 'citrus':'🍊',
+  'salad':'🥗', 'droplet':'💧', 'moon':'🌙', 'graduation-cap':'🎓', 'bus':'🚌', 'target':'🎯',
+  'heart-pulse':'❤️', 'chef-hat':'🍳', 'refrigerator':'🧊', 'menu':'☰'
+};
+function renderIcons(){
+  document.querySelectorAll('i[data-lucide]').forEach(el=>{
+    el.textContent = ICONS[el.getAttribute('data-lucide')] || '';
+    el.setAttribute('aria-hidden','true');
+  });
+}
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- HELPERS DE DATA ----------
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatHeaderDate(){
+  const d = new Date();
+  const dias = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return dias[d.getDay()]+', '+d.getDate()+' '+meses[d.getMonth()];
+}
+
+// ---------- STORAGE ----------
+let currentDay = todayKey();
+function storageKey(){ return 'dieta_hoje_'+currentDay; }
+function loadToday(){
+  try{ return JSON.parse(localStorage.getItem(storageKey())) || {}; }catch(e){ return {}; }
+}
+function saveToday(state){ localStorage.setItem(storageKey(), JSON.stringify(state)); }
+let todayState = loadToday();
+
+function loadPrep(){
+  try{
+    const raw = localStorage.getItem('dieta_prep_tasks');
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const seeded = [
+    {id:'p1', text:'Fazer sanduíches de pão integral + frango desfiado (café/lanche)', done:false},
+    {id:'p2', text:'Fazer sanduíches de pão + requeijão / presunto e queijo', done:false},
+    {id:'p3', text:'Cozinhar/temperar o frango desfiado e a carne moída', done:false},
+    {id:'p4', text:'Porcionar granola em potinhos de 12g', done:false},
+    {id:'p5', text:'Lavar e porcionar frutas (banana, morango, uva)', done:false},
+    {id:'p6', text:'Separar potinhos de mel (5g) para colação/café', done:false},
+    {id:'p7', text:'Comprar azeite extra virgem', done:false}
+  ];
+  localStorage.setItem('dieta_prep_tasks', JSON.stringify(seeded));
+  return seeded;
+}
+function savePrep(list){ localStorage.setItem('dieta_prep_tasks', JSON.stringify(list)); }
+let prepTasks = loadPrep();
+
+function loadWeights(){
+  try{ return JSON.parse(localStorage.getItem('dieta_weight_log')) || []; }catch(e){ return []; }
+}
+function saveWeights(list){ localStorage.setItem('dieta_weight_log', JSON.stringify(list)); }
+let weightLog = loadWeights();
+
+// ---------- RENDER: HEADER / PROGRESSO ----------
+function renderHeader(){
+  document.getElementById('headerDate').textContent = formatHeaderDate();
+  const totalItems = MEALS.length + 2;
+  let doneCount = 0;
+  MEALS.forEach(m=>{ if(todayState[m.id]) doneCount++; });
+  if(todayState.supp_manha) doneCount++;
+  if(todayState.supp_almoco) doneCount++;
+  const pct = Math.round((doneCount/totalItems)*100);
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressLabel').textContent = doneCount+' de '+totalItems+' concluídos hoje';
+}
+
+// ---------- RENDER: SUPLEMENTOS ----------
+function renderSupps(){
+  ['manha','almoco'].forEach(k=>{
+    const el = document.querySelector('.check[data-supp="'+k+'"]');
+    el.classList.toggle('done', !!todayState['supp_'+k]);
+  });
+}
+document.querySelectorAll('.check[data-supp]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const k = el.getAttribute('data-supp');
+    todayState['supp_'+k] = !todayState['supp_'+k];
+    saveToday(todayState);
+    renderSupps();
+    renderHeader();
+  });
+});
+
+// ---------- RENDER: REFEIÇÕES ----------
+function mealCardHTML(m){
+  const done = !!todayState[m.id];
+  const swapsHTML = m.swaps.length
+    ? '<div class="meal-block-title alt">Pode trocar por</div>' + m.swaps.map(s=>'<span class="swap-chip">'+s+'</span>').join('')
+    : '';
+  return `
+  <div class="card meal-card ${done?'done':''}" id="meal-${m.id}">
+    <div class="meal-head" data-toggle="${m.id}">
+      <div class="meal-time">${m.time}</div>
+      <div class="meal-emoji">${m.emoji}</div>
+      <div class="meal-info">
+        <div class="meal-name">${m.name}</div>
+        <div class="meal-weight">Total: ${m.total}${done ? ' · concluído ✓' : ''}</div>
+      </div>
+      <div class="chev"><i data-lucide="chevron-down"></i></div>
+    </div>
+    <div class="meal-body">
+      <div class="meal-body-inner">
+        <div class="meal-block-title">Como a nutri passou</div>
+        <ul class="plain">${m.base.map(b=>'<li>'+b+'</li>').join('')}</ul>
+        ${swapsHTML}
+        ${m.note ? '<div class="meal-note">'+m.note+'</div>' : ''}
+        <button class="mark-btn ${done?'done':''}" data-mark="${m.id}"><i data-lucide="${done?'check-circle-2':'circle'}"></i>${done ? 'Refeição feita' : 'Marcar como feita'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderMeals(){
+  document.getElementById('mealsList').innerHTML = MEALS.map(mealCardHTML).join('');
+  renderIcons();
+  document.querySelectorAll('[data-toggle]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.getElementById('meal-'+el.getAttribute('data-toggle')).classList.toggle('open');
+    });
+  });
+  document.querySelectorAll('[data-mark]').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const id = el.getAttribute('data-mark');
+      todayState[id] = !todayState[id];
+      saveToday(todayState);
+      renderMeals();
+      renderHeader();
+    });
+  });
+}
+
+// ---------- RENDER: PREPARO DA SEMANA ----------
+function renderPrep(){
+  const list = document.getElementById('prepList');
+  if(prepTasks.length===0){
+    list.innerHTML = '<div class="empty">Nenhuma tarefa ainda. Adicione abaixo.</div>';
+    renderIcons();
+    return;
+  }
+  list.innerHTML = prepTasks.map(t=>`
+    <div class="prep-item ${t.done?'done':''}">
+      <div class="check" style="width:22px;height:22px;" data-prep="${t.id}"><i data-lucide="check"></i></div>
+      <div class="prep-text">${escapeHTML(t.text)}</div>
+      <button class="prep-del" data-del="${t.id}"><i data-lucide="x"></i></button>
+    </div>`).join('');
+  renderIcons();
+  list.querySelectorAll('[data-prep]').forEach(el=>{
+    el.classList.toggle('done', prepTasks.find(t=>t.id===el.getAttribute('data-prep')).done);
+    el.addEventListener('click', ()=>{
+      const id = el.getAttribute('data-prep');
+      const t = prepTasks.find(x=>x.id===id);
+      t.done = !t.done;
+      savePrep(prepTasks);
+      renderPrep();
+    });
+  });
+  list.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.getAttribute('data-del');
+      prepTasks = prepTasks.filter(t=>t.id!==id);
+      savePrep(prepTasks);
+      renderPrep();
+    });
+  });
+}
+document.getElementById('prepAddBtn').addEventListener('click', addPrepTask);
+document.getElementById('prepInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') addPrepTask(); });
+function addPrepTask(){
+  const input = document.getElementById('prepInput');
+  const text = input.value.trim();
+  if(!text) return;
+  prepTasks.push({id:'p_'+prepTasks.length+'_'+text.length+'_'+Math.floor(Math.random()*100000), text, done:false});
+  savePrep(prepTasks);
+  input.value='';
+  renderPrep();
+}
+document.getElementById('resetWeekBtn').addEventListener('click', ()=>{
+  if(confirm('Desmarcar todas as tarefas de preparo para começar uma nova semana?')){
+    prepTasks.forEach(t=>t.done=false);
+    savePrep(prepTasks);
+    renderPrep();
+  }
+});
+
+// ---------- RENDER: PESO ----------
+function renderWeights(){
+  const el = document.getElementById('weightLog');
+  if(weightLog.length===0){
+    el.innerHTML = '<div class="empty">Nenhum registro ainda.</div>';
+    return;
+  }
+  const sorted = [...weightLog].sort((a,b)=> b.date.localeCompare(a.date));
+  el.innerHTML = sorted.slice(0,10).map(w=>`<div class="weight-log-item"><span>${w.date}</span><span><b>${w.weight} kg</b></span></div>`).join('');
+}
+document.getElementById('weightAddBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('weightInput');
+  const val = parseFloat(input.value);
+  if(!val || val<=0) return;
+  const key = todayKey();
+  weightLog = weightLog.filter(w=>w.date!==key);
+  weightLog.push({date:key, weight:val});
+  saveWeights(weightLog);
+  input.value='';
+  renderWeights();
+});
+
+// ---------- TABS ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.getAttribute('data-view')).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+// ---------- INIT ----------
+renderHeader();
+renderSupps();
+renderMeals();
+renderPrep();
+renderWeights();
+renderIcons();
+
+function checkNewDay(){
+  if(todayKey()===currentDay) return;
+  currentDay = todayKey();
+  todayState = loadToday();
+  renderHeader();
+  renderSupps();
+  renderMeals();
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkNewDay(); });
+setInterval(checkNewDay, 60000);
+</script>
+</body>
+</html>
